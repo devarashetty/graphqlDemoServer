@@ -1,0 +1,32 @@
+{
+  "name": "graphqlserver",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm-run-all --parallel build:server build:webpack ",
+    "build:server": "nodemon ./server.js",
+    "build:webpack": "webpack --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "apollo-client": "^1.0.4",
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
+    "express-graphql": "*",
+    "graphql": "^0.9.3",
+    "graphql-subscriptions": "^0.3.1",
+    "npm-run-all": "*",
+    "react": "^15.5.4",
+    "react-apollo": "^1.1.0",
+    "react-dom": "^15.5.4",
+    "react-router": "^4.1.1",
+    "react-router-dom": "^4.1.1",
+    "subscriptions-transport-ws": "^0.5.5",
+    "underscore": "^1.8.3",
+    "webpack": "^2.4.1"
+  }
+}
