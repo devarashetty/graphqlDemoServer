@@ -23046,7 +23046,8 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _templateObject = _taggedTemplateLiteral(['\n  query  {\n    author(_id:"indi") {\n    \tname\n    }\n  }\n'], ['\n  query  {\n    author(_id:\\"indi\\") {\n    \tname\n    }\n  }\n']);
+var _templateObject = _taggedTemplateLiteral(['\n  query  {\n    author(_id:"indi") {\n    \tname\n    }\n  }\n'], ['\n  query  {\n    author(_id:\\"indi\\") {\n    \tname\n    }\n  }\n']),
+    _templateObject2 = _taggedTemplateLiteral(['\n  mutation ($user:String!){\n    createAuthor(name:$user,_id:$user,twitterHandle:$user){\n      name\n    }\n  }\n'], ['\n  mutation ($user:String!){\n    createAuthor(name:$user,_id:$user,twitterHandle:$user){\n      name\n    }\n  }\n']);
 
 var _react = __webpack_require__(11);
 
@@ -23083,6 +23084,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 function _taggedTemplateLiteral(strings, raw) { return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
 
 var TrialQuery = (0, _graphqlTag2.default)(_templateObject);
+var TrialQuery2 = (0, _graphqlTag2.default)(_templateObject2);
 
 var Pokedex = function (_React$Component) {
   _inherits(Pokedex, _React$Component);
@@ -23090,21 +23092,29 @@ var Pokedex = function (_React$Component) {
   function Pokedex(props) {
     _classCallCheck(this, Pokedex);
 
-    return _possibleConstructorReturn(this, (Pokedex.__proto__ || Object.getPrototypeOf(Pokedex)).call(this, props));
+    var _this = _possibleConstructorReturn(this, (Pokedex.__proto__ || Object.getPrototypeOf(Pokedex)).call(this, props));
+
+    _this.onClick = _this.onClick.bind(_this);
+    return _this;
   }
 
   _createClass(Pokedex, [{
+    key: 'onClick',
+    value: function onClick() {
+      console.log("----------------", this.props);
+      this.props.mutate({ variables: { user: "sairam" } }).then(function (data) {
+        console.log("----------------------data", data).catch(function (error) {
+          console.log('there was an error sending the query', error);
+        });
+      });
+    }
+  }, {
     key: 'render',
     value: function render() {
-      console.log("------t", this.props);
       return _react2.default.createElement(
         'div',
-        { className: 'w-100 bg-light-gray min-vh-100' },
-        _react2.default.createElement(
-          'div',
-          { className: 'tc pa5' },
-          'Hey  there are 0 Pokemons in your pokedex'
-        )
+        { className: 'tc pa5', onClick: this.onClick },
+        'Hey  there are 0 Pokemons in your pokedex'
       );
     }
   }]);
@@ -23112,41 +23122,13 @@ var Pokedex = function (_React$Component) {
   return Pokedex;
 }(_react2.default.Component);
 
-var PokedexWithData = (0, _reactApollo.graphql)(TrialQuery)(Pokedex);
-
-var networkInterface = (0, _apolloClient.createNetworkInterface)('http://localhost:8000/graphql');
-
-var wsClient = new _subscriptionsTransportWs.SubscriptionClient('ws://localhost:5000/', {
-  reconnect: true,
-  connectionParams: {
-    // Pass any arguments you want for initialization
+var PokedexWithData = (0, _reactApollo.graphql)(TrialQuery2)(Pokedex);
+var networkInterface = (0, _apolloClient.createNetworkInterface)({
+  uri: 'http://localhost:8000/graphql',
+  opts: {
+    mode: 'no-cors'
   }
 });
-
-var networkInterfaceWithSubscriptions = (0, _subscriptionsTransportWs.addGraphQLSubscriptions)(networkInterface, wsClient);
-
-console.log("=================wsClient", wsClient);
-
-var apolloClient = new _apolloClient2.default({
-  networkInterface: networkInterfaceWithSubscriptions
-});
-
-var testingSub = wsClient.subscribe({
-  query: '\
-      subscription {\
-          authorAdded {\
-              id\
-          }\
-      }',
-
-  variables: {},
-  operationName: "testingSub"
-}, function (errors, result) {
-  console.log("--------------------err", errors);
-  console.log("--------------res", result);
-});
-
-console.log("-----------------testingSub", testingSub);
 
 var App = function (_React$Component2) {
   _inherits(App, _React$Component2);
@@ -23160,26 +23142,20 @@ var App = function (_React$Component2) {
       args[_key] = arguments[_key];
     }
 
-    return _possibleConstructorReturn(this, (_ref = App.__proto__ || Object.getPrototypeOf(App)).call.apply(_ref, [this].concat(args)));
-    // apolloClient.subscribe({
-    //   querykey:  gql`
-    //       subscription testing {
-    //           authors {
-    //               id
-    //           }
-    //       }`,
-    // })
+    var _this2 = _possibleConstructorReturn(this, (_ref = App.__proto__ || Object.getPrototypeOf(App)).call.apply(_ref, [this].concat(args)));
+
+    _this2.apolloClient = new _apolloClient2.default({
+      networkInterface: networkInterface
+    });
+    return _this2;
   }
 
   _createClass(App, [{
-    key: 'componentDidMount',
-    value: function componentDidMount() {}
-  }, {
     key: 'render',
     value: function render() {
       return _react2.default.createElement(
         _reactApollo.ApolloProvider,
-        { client: apolloClient },
+        { client: this.apolloClient },
         _react2.default.createElement(PokedexWithData, null)
       );
     }

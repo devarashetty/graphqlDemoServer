@@ -1,4 +1,4 @@
-import React,{Component} from 'react';
+import React,{Component, PropTypes} from 'react';
 import ReactDom from 'react-dom';
 import {BrowserRouter,Route} from 'react-router-dom'
 import ApolloClient, { createNetworkInterface } from 'apollo-client'
@@ -17,88 +17,59 @@ const TrialQuery = gql`
     }
   }
 `
-
+const TrialQuery2 = gql`
+  mutation ($user:String!){
+    createAuthor(name:$user,_id:$user,twitterHandle:$user){
+      name
+    }
+  }
+`
 
 class Pokedex extends React.Component {
   constructor(props){
     super(props);
+    this.onClick = this.onClick.bind(this);    
+  }
+  
+  onClick(){
+    console.log("----------------",this.props)
+    this.props.mutate({variables:{user:"sairam"}}).then(function (data) {
+      console.log("----------------------data",data).catch((error) => {
+        console.log('there was an error sending the query', error);
+      });
+    })
   }
 
   render () {   
-    console.log("------t",this.props)
     return (
-      <div className='w-100 bg-light-gray min-vh-100'>
-        <div className='tc pa5'>
+        <div className='tc pa5' onClick={this.onClick}>
           Hey  there are 0 Pokemons in your pokedex
         </div>
-     </div>
     )
   }
 }
 
-const PokedexWithData = graphql(TrialQuery)(Pokedex);
-
-
-const networkInterface = createNetworkInterface('http://localhost:8000/graphql');
-
-const wsClient = new SubscriptionClient(`ws://localhost:5000/`, {
-  reconnect: true,
-  connectionParams: {
-      // Pass any arguments you want for initialization
-  }
-}); 
-
-const networkInterfaceWithSubscriptions = addGraphQLSubscriptions(
-  networkInterface,
-  wsClient
-);
-
-console.log("=================wsClient",wsClient);
-
-const apolloClient = new ApolloClient({
-    networkInterface: networkInterfaceWithSubscriptions
-})
-
-var testingSub = wsClient.subscribe(
-  {
-    query:'\
-      subscription {\
-          authorAdded {\
-              id\
-          }\
-      }',
-    
-    variables:{},
-    operationName:"testingSub"
+const PokedexWithData = graphql(TrialQuery2)(Pokedex);
+const networkInterface = createNetworkInterface({
+  uri:'http://localhost:8000/graphql',
+  opts: {
+    mode: 'no-cors',
   },
-  function (errors: Error[], result?: any) {
-    console.log("--------------------err",errors);
-    console.log("--------------res",result)
-  }
-)
+});
 
-console.log("-----------------testingSub",testingSub);
 class App extends React.Component  {
-
+  
   constructor(...args) {
     super(...args);
-    // apolloClient.subscribe({
-    //   querykey:  gql`
-    //       subscription testing {
-    //           authors {
-    //               id
-    //           }
-    //       }`,
-    // })
-  }
 
-  componentDidMount(){
-   
+    this.apolloClient = new ApolloClient({
+      networkInterface: networkInterface
+    })
   }
 
   render() {
     return (
-      <ApolloProvider client={apolloClient}>
+      <ApolloProvider client={this.apolloClient}>
         <PokedexWithData />
       </ApolloProvider>
     );

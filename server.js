@@ -2,8 +2,10 @@ var  express = require('express');
 var bodyParser = require('body-parser');
 var path = require('path');
 var graphqlExpress = require('graphql-server-express').graphqlExpress;
-var _ = require("underscore");
+var graphqlHTTP = require('express-graphql');
 
+var _ = require("underscore");
+var cors = require('cors');
 var GraphQLList = require('graphql').GraphQLList;
 var GraphQLObjectType = require('graphql').GraphQLObjectType;
 var GraphQLSchema = require('graphql').GraphQLSchema;
@@ -16,7 +18,6 @@ var GraphQLInterfaceType = require('graphql').GraphQLInterfaceType;
 var SubscriptionOptions = require('graphql-subscriptions/dist/pubsub').SubscriptionOptions;
 var SubscriptionManager = require("graphql-subscriptions").SubscriptionManager;
 var PubSub = require("graphql-subscriptions").PubSub;
-console.log("PubSub",PubSub);
 var SubscriptionServer = require("subscriptions-transport-ws").SubscriptionServer;
 
 var createServer = require('http').createServer;
@@ -275,6 +276,7 @@ const Query = new GraphQLObjectType({
 const Mutation = new GraphQLObjectType({
   name: 'BlogMutations',
   fields: {
+
     createPost: {
       type: Post,
       description: 'Create a new blog post',
@@ -286,7 +288,7 @@ const Mutation = new GraphQLObjectType({
         category: {type: Category},
         author: {type: new GraphQLNonNull(GraphQLString), description: 'Id of the author'}
       },
-      resolve: function(source, {args}) {
+      resolve: function(parentValue, args, request) {
         let post = args;
         var alreadyExists = _.findIndex(PostsList, p => p._id === post._id) >= 0;
         if(alreadyExists) {
@@ -317,9 +319,10 @@ const Mutation = new GraphQLObjectType({
         name: {type: new GraphQLNonNull(GraphQLString)},
         twitterHandle: {type: GraphQLString}
       },
-      resolve: function(source, {args}) {
+      resolve: function(parentValue, args, request) {
         let author = args;
-        if(AuthorsMap[args._id]) {
+        console.log("-------------------",parentValue, args, request)
+        if(args && AuthorsMap[args._id]) {
           throw new Error('Author already exists: ' + author._id);
         }
 
@@ -327,7 +330,7 @@ const Mutation = new GraphQLObjectType({
         console.log("author",author);
         return author;
       }
-    }
+    },
   }
 });
 
@@ -376,47 +379,55 @@ app.use(bodyParser.json());
 
 app.use("/",express.static(path.join(__dirname + '/public')));
 
-app.use('/graphql', bodyParser.json(), bodyParser.urlencoded({
-    extended: true
-}), graphqlExpress({
-    schema: myGraphQLSchema
+app.use(cors())
+
+app.use('/graphql', graphqlHTTP({
+  schema: myGraphQLSchema,
+  graphiql: true
 }));
+
+app.head('/graphql', (req, res) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:8000');
+  res.header('Access-Control-Request-Method', 'GET, POST');
+  res.header('Access-Control-Allow-Headers', 'Origin, Accept, Content-Type, Content-Length');
+  res.end();
+});
 
 app.listen(PORT);
 
 
-const pubSub = new PubSub();
+// const pubSub = new PubSub();
 
-const subscriptionManager = new SubscriptionManager({
-  schema:myGraphQLSchema,
-  pubsub:pubSub,
-  setupFunctions:{
-    'authors':function (SubscriptionOptions,args) {
-      console.log("-----------args",args) 
-    },
-  }
-});
+// const subscriptionManager = new SubscriptionManager({
+//   schema:myGraphQLSchema,
+//   pubsub:pubSub,
+//   setupFunctions:{
+//     'authors':function (SubscriptionOptions,args) {
+//       console.log("-----------args",args) 
+//     },
+//   }
+// });
 
-const WS_PORT = 5000;
+// const WS_PORT = 5000;
 
-const websocketServer = createServer((request, response) => {
-  response.end();
-});
+// const websocketServer = createServer((request, response) => {
+//   response.end();
+// });
 
-// Bind it to port and start listening
-websocketServer.listen(WS_PORT, () => console.log(
-  `Websocket Server is now running on http://localhost:${WS_PORT}`
-));
+// // Bind it to port and start listening
+// websocketServer.listen(WS_PORT, () => console.log(
+//   `Websocket Server is now running on http://localhost:${WS_PORT}`
+// ));
 
-const subscriptionServer = new SubscriptionServer(
-  {
-    onConnect: async (connectionParams) => {
-      // Implement if you need to handle and manage connection
-    },
-    subscriptionManager: subscriptionManager
-  },
-  {
-    server:websocketServer,
-    path: '/'
-  }
-)
+// const subscriptionServer = new SubscriptionServer(
+//   {
+//     onConnect: async (connectionParams) => {
+//       // Implement if you need to handle and manage connection
+//     },
+//     subscriptionManager: subscriptionManager
+//   },
+//   {
+//     server:websocketServer,
+//     path: '/'
+//   }
+// )
